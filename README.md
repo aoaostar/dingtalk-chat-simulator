@@ -2,7 +2,9 @@
 
 一个纯前端的钉钉聊天记录模拟工具，单文件 HTML，无需构建、无需后端，打开即用。
 
-在线体验：<https://aoaostar.github.io/dingtalk-chat-simulator/>
+在线体验：<https://www.aoaostar.com/dingtalk-chat-simulator/>
+
+> 注：账号的 GitHub Pages 配置了自定义域名，`aoaostar.github.io` 会自动跳转到 `www.aoaostar.com`，两个地址均可使用。
 
 ## 功能
 
@@ -31,7 +33,7 @@
 1. 进入仓库 **Settings → Pages**
 2. **Source** 选择 `Deploy from a branch`
 3. **Branch** 选择 `main`，目录选择 `/ (root)`，点击 **Save**
-4. 等待约 1 分钟，访问 `https://<用户名>.github.io/dingtalk-chat-simulator/`
+4. 等待约 1 分钟，访问 `https://www.aoaostar.com/dingtalk-chat-simulator/`（或 `https://aoaostar.github.io/dingtalk-chat-simulator/`，会自动跳转）
 
 也可以通过命令行推送到已有仓库：
 
