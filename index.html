@@ -214,34 +214,15 @@
   .msg-row.self .msg-body { align-items: flex-end; }
   .bubble {
     padding: 9px 12px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 14px;
     line-height: 1.5;
     word-break: break-word;
     white-space: pre-wrap;
     background: #fff;
-    border-top-left-radius: 0;
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    position: relative;
   }
-  .msg-row.self .bubble {
-    background: var(--dd-blue-light);
-    border-top-left-radius: 4px;
-    border-top-right-radius: 0;
-  }
-  /* 气泡小三角 */
-  .bubble::before {
-    content: "";
-    position: absolute;
-    top: 0; left: -6px;
-    border: 6px solid transparent;
-    border-top-color: #fff;
-    border-radius: 2px;
-  }
-  .msg-row.self .bubble::before {
-    left: auto; right: -6px;
-    border-top-color: var(--dd-blue-light);
-  }
+  .msg-row.self .bubble { background: var(--dd-blue-light); }
   .export-area { display: none; position: fixed; left: -9999px; top: 0; }
   #exportNode .chat-area { height: auto; overflow: visible; }
 
@@ -363,6 +344,38 @@
     ],
   };
 
+  /* ===== 本地持久化：刷新页面后数据仍在 ===== */
+  const STORAGE_KEY = 'dingtalk-chat-simulator-v1';
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        chatType: document.getElementById('chatType').value,
+        chatTitle: document.getElementById('chatTitle').value,
+        myName: document.getElementById('myName').value,
+        myAvatar: state.myAvatar,
+        members: state.members,
+        messages: state.messages,
+      }));
+    } catch (e) {
+      // 存储不可用或空间不足时静默失败，不影响正常使用
+    }
+  }
+
+  function loadState() {
+    let raw = null;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+    if (!raw) return;
+    let d;
+    try { d = JSON.parse(raw); } catch (e) { return; }
+    if (Array.isArray(d.members)) state.members = d.members;
+    if (Array.isArray(d.messages)) state.messages = d.messages;
+    state.myAvatar = d.myAvatar || '';
+    if (typeof d.chatType === 'string') document.getElementById('chatType').value = d.chatType;
+    if (typeof d.chatTitle === 'string') document.getElementById('chatTitle').value = d.chatTitle;
+    if (typeof d.myName === 'string') document.getElementById('myName').value = d.myName;
+  }
+
   function getMember(id) { return state.members.find(m => m.id === id); }
   function senderOptions() {
     let html = state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
@@ -483,6 +496,7 @@
     const prev = sel.value || '__self';
     sel.innerHTML = senderOptions();
     sel.value = prev;
+    saveState();
   }
 
   /* ===== 头像上传 ===== */
@@ -491,22 +505,42 @@
     uploadingTarget = target;
     document.getElementById('avatarFileInput').click();
   }
+  // 头像统一压缩为 96×96 正方形，体积小、便于本地持久化
+  const AVATAR_SIZE = 96;
   function onAvatarFile(input) {
     const file = input.files && input.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) { toast('图片请小于 3MB'); input.value = ''; return; }
+    if (!/^image\//.test(file.type)) { toast('请选择图片文件'); input.value = ''; return; }
+    if (file.size > 10 * 1024 * 1024) { toast('图片请小于 10MB'); input.value = ''; return; }
     const reader = new FileReader();
     reader.onload = e => {
-      if (uploadingTarget === 'self') {
-        state.myAvatar = e.target.result;
-      } else {
-        const m = getMember(uploadingTarget);
-        if (m) m.avatar = e.target.result;
-      }
-      uploadingTarget = null;
-      input.value = '';
-      render();
-      toast('头像已更新');
+      const img = new Image();
+      img.onload = () => {
+        let dataUrl = e.target.result;
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = AVATAR_SIZE; canvas.height = AVATAR_SIZE;
+          const ctx = canvas.getContext('2d');
+          // 居中裁剪为正方形后缩放
+          const side = Math.min(img.width, img.height);
+          ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+          dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        } catch (err) {
+          // 压缩失败时使用原图
+        }
+        if (uploadingTarget === 'self') {
+          state.myAvatar = dataUrl;
+        } else {
+          const m = getMember(uploadingTarget);
+          if (m) m.avatar = dataUrl;
+        }
+        uploadingTarget = null;
+        input.value = '';
+        render();
+        toast('头像已更新');
+      };
+      img.onerror = () => { toast('图片读取失败'); input.value = ''; };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
   }
@@ -578,6 +612,7 @@
   function resetAll() {
     if (!confirm('确定清空所有成员和消息吗？')) return;
     state.members = []; state.messages = []; state.myAvatar = '';
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     render();
   }
 
@@ -621,8 +656,21 @@
   }
   document.getElementById('clock').textContent = nowHM();
 
+  // 恢复上次的数据后再渲染
+  loadState();
   render();
   scrollChatBottom();
+
+  // 任意输入/点击后自动保存（防抖），关闭页面前再保存一次
+  let saveTimer;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveState, 300);
+  }
+  document.addEventListener('input', scheduleSave, true);
+  document.addEventListener('change', scheduleSave, true);
+  document.addEventListener('click', scheduleSave, true);
+  window.addEventListener('beforeunload', saveState);
 </script>
 </body>
 </html>
