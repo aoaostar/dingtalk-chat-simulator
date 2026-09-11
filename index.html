@@ -162,18 +162,34 @@
     flex-shrink: 0;
   }
   .nav-bar {
-    height: 48px;
+    min-height: 54px;
     background: var(--dd-blue);
     color: #fff;
     display: flex;
     align-items: center;
-    padding: 0 12px;
-    gap: 10px;
+    padding: 6px 12px;
+    gap: 8px;
     flex-shrink: 0;
   }
-  .nav-back { font-size: 18px; opacity: .9; cursor: default; }
-  .nav-title { flex: 1; text-align: center; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nav-more { font-size: 16px; opacity: .9; letter-spacing: 2px; }
+  .nav-back { font-size: 20px; opacity: .95; cursor: default; }
+  .nav-center { flex: 1; text-align: center; min-width: 0; }
+  .nav-title {
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nav-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,.78);
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nav-icons { display: flex; align-items: center; gap: 12px; opacity: .95; }
+  .nav-icons svg { display: block; }
 
   .chat-area {
     flex: 1;
@@ -195,10 +211,10 @@
   .time-msg { text-align: center; margin: 12px 0; }
   .time-msg span { font-size: 11px; color: var(--text-sub); }
 
-  .msg-row { display: flex; margin: 10px 0; gap: 8px; align-items: flex-start; }
+  .msg-row { display: flex; margin: 16px 0; gap: 8px; align-items: flex-start; }
   .msg-row.self { flex-direction: row-reverse; }
   .avatar {
-    width: 36px; height: 36px;
+    width: 40px; height: 40px;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -210,8 +226,14 @@
     overflow: hidden;
   }
   .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .msg-body { max-width: 240px; display: flex; flex-direction: column; }
+  .msg-body { max-width: 250px; display: flex; flex-direction: column; }
   .msg-row.self .msg-body { align-items: flex-end; }
+  .sender-name {
+    font-size: 12px;
+    color: #9aa0a8;
+    margin-bottom: 4px;
+    padding-left: 2px;
+  }
   .bubble {
     padding: 9px 12px;
     border-radius: 6px;
@@ -223,6 +245,50 @@
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
   .msg-row.self .bubble { background: var(--dd-blue-light); }
+  .read-receipt {
+    font-size: 11px;
+    color: #9aa0a8;
+    margin-top: 3px;
+    padding-right: 2px;
+  }
+
+  /* 底部功能区：群签到 / 输入框 / 工具栏 */
+  .chat-footer {
+    flex-shrink: 0;
+    background: #f5f6f7;
+    padding: 8px 12px 4px;
+  }
+  .footer-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--text-main);
+    background: #fff;
+  }
+  .input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .input-pill {
+    flex: 1;
+    background: #fff;
+    border-radius: 18px;
+    padding: 9px 14px;
+    font-size: 13px;
+    color: #9aa0a8;
+  }
+  .toolbar-row { display: flex; justify-content: space-between; padding: 2px 4px; }
+  .tool {
+    min-width: 30px; height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5b6067;
+    font-size: 15px;
+    font-weight: 500;
+  }
   .export-area { display: none; position: fixed; left: -9999px; top: 0; }
   #exportNode .chat-area { height: auto; overflow: visible; }
 
@@ -257,11 +323,15 @@
       <div class="section" data-page-node-id="idrFqFfshjAZdAjWpHdpXi">
         <div class="section-title" data-page-node-id="sEhmwDXOINrONJMAXmqWgF">会话设置</div>
         <div class="form-row" data-page-node-id="xEr7tI6lerv5Haya8unQlF">
-          <select id="chatType" style="width:110px" onchange="render()" data-page-node-id="JcJeDIU3xnwTrB1sPDDbxv">
-            <option value="group" data-page-node-id="Sx3q0KZo6tcLxkEngVVDwn">群聊</option>
-            <option value="single" data-page-node-id="EJqDCh1sx8GSE2vFNUu4ak">单聊</option>
-          </select>
-          <input type="text" id="chatTitle" placeholder="会话标题（群名 / 对方名）" value="产品需求讨论群" oninput="render()" data-page-node-id="1E9WwxwL1ZO0fOYcOB2s8y">
+          <input type="text" id="chatTitle" placeholder="会话标题（群名）" value="AI能力研究" oninput="render()" data-page-node-id="1E9WwxwL1ZO0fOYcOB2s8y">
+        </div>
+        <div class="form-row">
+          <input type="text" id="navSubtitle" placeholder="导航栏副标题" value="杭州素师科技...（内部群）| 5位成员" oninput="render()">
+        </div>
+        <div class="form-row">
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-main)">
+            <input type="checkbox" id="showRead" checked onchange="render()"> 自己的消息下方显示"全部已读"
+          </label>
         </div>
         <div class="form-row" data-page-node-id="nOcoMW3MFGAuhEdOWL4ppm">
           <span id="myAvatarPreview" style="line-height:0;cursor:pointer" title="点击上传头像" onclick="pickAvatar('self')"></span>
@@ -304,15 +374,41 @@
     <div class="phone" data-page-node-id="KvRk0OonrjfwzOvLxOlsz4">
       <div class="phone-screen" id="phoneScreen" data-page-node-id="gnbJrnJg3ORQ93EAAvwiIk">
         <div class="status-bar" data-page-node-id="O5S7RmOO6OZHQXadxCibrB">
-          <span id="clock" data-page-node-id="Y4sCdMfmL88ZyMaJDxslyW">14:57</span>
-          <span data-page-node-id="a7u4CFtLG1jkldwrErlDvS">5G &nbsp;&#9679;&#9679;&#9679;&nbsp; &#128267;100%</span>
+          <span id="clock" data-page-node-id="Y4sCdMfmL88ZyMaJDxslyW">14:54</span>
+          <span>11.1 5G 5G KB/s &nbsp;&#9612;&#9614;&#9616;&#9608;&nbsp; 65</span>
         </div>
         <div class="nav-bar" data-page-node-id="5oaFp3yDeqnC3uEij2EpIa">
           <span class="nav-back" data-page-node-id="PX3N9gS9LCAfiHmGVXz5DI">&#8249;</span>
-          <span class="nav-title" id="navTitle" data-page-node-id="uyM9rxz2IHUqW65aFSpXiz">产品需求讨论群</span>
-          <span class="nav-more" data-page-node-id="JLav2oyNmFEgM93KV4TG72">&#8943;</span>
+          <div class="nav-center">
+            <div class="nav-title" id="navTitle" data-page-node-id="uyM9rxz2IHUqW65aFSpXiz">AI能力研究</div>
+            <div class="nav-sub" id="navSubText">杭州素师科技...（内部群）| 5位成员</div>
+          </div>
+          <div class="nav-icons">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </div>
         </div>
         <div class="chat-area" id="chatArea" data-page-node-id="eq2P2NenQTFmdqJt2fna2j"></div>
+        <div class="chat-footer">
+          <div class="footer-actions">
+            <span class="pill-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5b6067" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>群签到</span>
+            <span class="pill-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5b6067" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 7l1.5-3h3L15 7"/></svg>水印拍照</span>
+          </div>
+          <div class="input-row">
+            <div class="input-pill">请输入消息或@AI小钉</div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f2329" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+          </div>
+          <div class="toolbar-row">
+            <span class="tool">@</span>
+            <span class="tool">Aa</span>
+            <span class="tool"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b6067" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9"/><path d="M7 11l4-7c1.5 0 2 1 1.5 2.5L12 9h5c1.5 0 2 1.5 1.5 3l-1.5 6c-.3 1.2-1 2-2.5 2H7"/></svg></span>
+            <span class="tool"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b6067" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M14 4l-4 16"/></svg></span>
+            <span class="tool">译</span>
+            <span class="tool"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b6067" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 10h.01M15.5 10h.01"/><path d="M8.5 14.5c1 1.2 2.2 1.8 3.5 1.8s2.5-.6 3.5-1.8"/></svg></span>
+            <span class="tool">＋</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -332,15 +428,17 @@
   let state = {
     myAvatar: '',
     members: [
-      { id: 1, name: '老板', avatar: '' },
-      { id: 2, name: '小雨', avatar: '' },
+      { id: 1, name: '沈楪（数据安全委员）', avatar: '' },
+      { id: 2, name: '老譚', avatar: '' },
+      { id: 3, name: '林昌志', avatar: '' },
     ],
     messages: [
-      { type: 'time', text: '昨天 14:30' },
-      { type: 'chat', senderId: 1, text: '这周 原型可以弄完吗' },
-      { type: 'chat', self: true, text: '可以，周三前出四个核心页面，周四联调过一遍再给你' },
-      { type: 'chat', senderId: 1, text: '行，那单词模块的交互也一起补上' },
-      { type: 'chat', self: true, text: '没问题' },
+      { type: 'chat', self: true, text: 'OpenCode' },
+      { type: 'chat', senderId: 1, text: '那模型是哪个？' },
+      { type: 'chat', senderId: 2, text: '如果需要充值token可以让财务执行' },
+      { type: 'chat', senderId: 2, text: '这个事情非常重要，有可能是未来公司流量的重要来源' },
+      { type: 'chat', self: true, text: '干问' },
+      { type: 'chat', senderId: 3, text: 'deepseek' },
     ],
   };
 
@@ -350,8 +448,9 @@
   function saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        chatType: document.getElementById('chatType').value,
         chatTitle: document.getElementById('chatTitle').value,
+        navSubtitle: document.getElementById('navSubtitle').value,
+        showRead: document.getElementById('showRead').checked,
         myName: document.getElementById('myName').value,
         myAvatar: state.myAvatar,
         members: state.members,
@@ -371,8 +470,9 @@
     if (Array.isArray(d.members)) state.members = d.members;
     if (Array.isArray(d.messages)) state.messages = d.messages;
     state.myAvatar = d.myAvatar || '';
-    if (typeof d.chatType === 'string') document.getElementById('chatType').value = d.chatType;
     if (typeof d.chatTitle === 'string') document.getElementById('chatTitle').value = d.chatTitle;
+    if (typeof d.navSubtitle === 'string') document.getElementById('navSubtitle').value = d.navSubtitle;
+    if (typeof d.showRead === 'boolean') document.getElementById('showRead').checked = d.showRead;
     if (typeof d.myName === 'string') document.getElementById('myName').value = d.myName;
   }
 
@@ -388,14 +488,14 @@
   }
   function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, '&#10;'); }
 
-  /* ===== 头像渲染：有自定义图片用图片，否则浅蓝底蓝字文字头像 ===== */
+  /* ===== 头像渲染：图片头像显示为圆形，文字头像为钉钉浅蓝圆角方形 ===== */
   function avatarHTML(opts, size) {
-    const s = size || 36;
+    const s = size || 40;
     if (opts.avatar) {
-      return `<div class="avatar" style="width:${s}px;height:${s}px"><img src="${opts.avatar}" alt=""></div>`;
+      return `<div class="avatar" style="width:${s}px;height:${s}px;border-radius:50%"><img src="${opts.avatar}" alt=""></div>`;
     }
     const text = escapeHtml((opts.name || '?').slice(0, 2));
-    const fontSize = s <= 20 ? 10 : 12;
+    const fontSize = s <= 22 ? 10 : 13;
     return `<div class="avatar" style="width:${s}px;height:${s}px;background:${DD_BLUE_LIGHT};color:${DD_BLUE};font-size:${fontSize}px">${text}</div>`;
   }
 
@@ -448,9 +548,10 @@
     }).join('');
   }
 
-  /* ===== 渲染：聊天预览（只显示头像与气泡，不显示昵称） ===== */
+  /* ===== 渲染：聊天预览（按钉钉真实样式：对方消息上方灰色昵称，自己消息下方"全部已读"） ===== */
   function renderChat(targetId) {
     const myName = document.getElementById('myName').value.trim() || '我';
+    const showRead = document.getElementById('showRead').checked;
     const area = document.getElementById(targetId);
     let html = '';
 
@@ -466,6 +567,7 @@
             ${avatarHTML({ name: myName, avatar: state.myAvatar })}
             <div class="msg-body">
               <div class="bubble">${escapeHtml(msg.text)}</div>
+              ${showRead ? '<div class="read-receipt">全部已读</div>' : ''}
             </div>
           </div>`;
         } else {
@@ -474,6 +576,7 @@
           <div class="msg-row">
             ${avatarHTML(m)}
             <div class="msg-body">
+              <div class="sender-name">${escapeHtml(m.name)}</div>
               <div class="bubble">${escapeHtml(msg.text)}</div>
             </div>
           </div>`;
@@ -488,6 +591,7 @@
     renderMsgList();
     renderChat('chatArea');
     document.getElementById('navTitle').textContent = document.getElementById('chatTitle').value || '聊天';
+    document.getElementById('navSubText').textContent = document.getElementById('navSubtitle').value || '';
     // 刷新"我的头像"预览
     document.getElementById('myAvatarPreview').innerHTML =
       avatarHTML({ name: document.getElementById('myName').value.trim() || '我', avatar: state.myAvatar }, 28);
