@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="rJWdHGx5hYOSIcSv73sdFG">
+<head data-page-node-id="2qMCbgUjLeDvGijbprcUTx">
+<meta charset="UTF-8" data-page-node-id="P86edzxhuT1Io3TvrhbAkS">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="A6I0MhTQkvSPIjFLvj3dOT">
+<title>钉钉消息聊天记录模拟工具</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  :root {
+    --dd-blue: #1677ff;
+    --dd-blue-light: #c9e2ff;
+    --border: #e5e6eb;
+    --text-main: #1f2329;
+    --text-sub: #8a9099;
+    --bg: #f5f6f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    height: 100vh;
+    overflow: hidden;
+  }
+  .app { display: flex; height: 100vh; }
+
+  /* ===== 左侧编辑区 ===== */
+  .editor {
+    width: 400px;
+    min-width: 400px;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .editor-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .editor-header h1 { font-size: 16px; font-weight: 600; }
+  .editor-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+  .section { margin-bottom: 20px; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title::before {
+    content: "";
+    width: 3px; height: 12px;
+    background: var(--dd-blue);
+    border-radius: 2px;
+  }
+  .form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .form-row:last-child { margin-bottom: 0; }
+
+  input[type="text"], select, textarea {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    background: #fff;
+    color: var(--text-main);
+    transition: border-color .15s;
+  }
+  input[type="text"]:focus, select:focus, textarea:focus { border-color: var(--dd-blue); }
+  input[type="text"] { flex: 1; min-width: 0; }
+  select { cursor: pointer; }
+  textarea { width: 100%; resize: vertical; min-height: 56px; }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--dd-blue); color: var(--dd-blue); }
+  .btn-primary { background: var(--dd-blue); border-color: var(--dd-blue); color: #fff; }
+  .btn-primary:hover { background: #3d8bff; color: #fff; }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  .btn-danger:hover { border-color: #f54a45; color: #f54a45; }
+
+  .member-list { display: flex; flex-direction: column; gap: 6px; }
+  .member-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .member-item input { flex: 1; border: none; padding: 2px 4px; }
+  .color-dot {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 2px solid transparent;
+  }
+  .member-item .icon-btn { border: none; background: none; cursor: pointer; color: var(--text-sub); font-size: 14px; padding: 2px 5px; }
+  .member-item .icon-btn:hover { color: #f54a45; }
+
+  /* 消息编辑列表 */
+  .msg-list { display: flex; flex-direction: column; gap: 6px; }
+  .msg-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    background: #fff;
+  }
+  .msg-item-top { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .msg-item-top select { flex: 1; }
+  .msg-item textarea { min-height: 40px; margin-top: 2px; }
+  .msg-actions { display: flex; gap: 2px; }
+  .msg-actions button {
+    border: none; background: none; cursor: pointer;
+    color: var(--text-sub); font-size: 13px; padding: 2px 5px; border-radius: 4px;
+  }
+  .msg-actions button:hover { background: #f0f1f2; color: var(--dd-blue); }
+  .msg-actions button.del:hover { color: #f54a45; }
+  .empty-tip { color: var(--text-sub); font-size: 12px; text-align: center; padding: 16px 0; }
+
+  /* ===== 右侧预览区 ===== */
+  .preview-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .preview-toolbar { margin-bottom: 16px; display: flex; gap: 10px; }
+  .phone {
+    width: 390px;
+    background: #f0f2f5;
+    border-radius: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12);
+    overflow: hidden;
+    border: 8px solid #1f2329;
+    align-self: flex-start;
+  }
+  .phone-screen { display: flex; flex-direction: column; height: 700px; background: #fff; }
+  .status-bar {
+    height: 30px;
+    background: var(--dd-blue);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    color: #fff;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .nav-bar {
+    height: 48px;
+    background: var(--dd-blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .nav-back { font-size: 18px; opacity: .9; cursor: default; }
+  .nav-title { flex: 1; text-align: center; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-more { font-size: 16px; opacity: .9; letter-spacing: 2px; }
+
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 12px 16px;
+    background: #f5f6f7;
+  }
+
+  /* 消息样式 */
+  .sys-msg { text-align: center; margin: 10px 0; }
+  .sys-msg span {
+    display: inline-block;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(0,0,0,.18);
+    padding: 3px 10px;
+    border-radius: 4px;
+  }
+  .time-msg { text-align: center; margin: 12px 0; }
+  .time-msg span { font-size: 11px; color: var(--text-sub); }
+
+  .msg-row { display: flex; margin: 10px 0; gap: 8px; align-items: flex-start; }
+  .msg-row.self { flex-direction: row-reverse; }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+    user-select: none;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .msg-body { max-width: 240px; display: flex; flex-direction: column; }
+  .msg-row.self .msg-body { align-items: flex-end; }
+  .sender-name {
+    font-size: 11px;
+    color: #7b8290;
+    margin-bottom: 3px;
+    padding-left: 2px;
+  }
+  .bubble {
+    padding: 9px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+    background: #fff;
+    border-top-left-radius: 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    position: relative;
+  }
+  .msg-row.self .bubble {
+    background: var(--dd-blue-light);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 0;
+  }
+  /* 气泡小三角 */
+  .bubble::before {
+    content: "";
+    position: absolute;
+    top: 0; left: -6px;
+    border: 6px solid transparent;
+    border-top-color: #fff;
+    border-radius: 2px;
+  }
+  .msg-row.self .bubble::before {
+    left: auto; right: -6px;
+    border-top-color: var(--dd-blue-light);
+  }
+  .msg-row.no-name .sender-name { display: none; }
+  .msg-row.no-name .bubble { margin-top: 0; }
+
+  .export-area { display: none; position: fixed; left: -9999px; top: 0; }
+  #exportNode .chat-area { height: auto; overflow: visible; }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    top: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(31,35,41,.9);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .25s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body data-page-node-id="A4o9bICaedsRDMmkuNwW6X">
+<div class="app" data-page-node-id="j9sSIqt2OnlTVCdeWkissV">
+  <!-- 左侧编辑 -->
+  <div class="editor" data-page-node-id="RVqUPaClQ65xd7eRCcQtsS">
+    <div class="editor-header" data-page-node-id="MlPH165wiIbsHmGysAjMir">
+      <h1 data-page-node-id="dBqGhfe0P2ILQuA3K7lDlg">钉钉聊天记录模拟器</h1>
+      <button class="btn btn-sm" onclick="resetAll()" data-page-node-id="VLmGyvaNq1NHw5x0HQGclK">清空重来</button>
+    </div>
+    <div class="editor-body" data-page-node-id="GNuALWh9L8g9bNHj1WpGXK">
+      <!-- 会话设置 -->
+      <div class="section" data-page-node-id="idrFqFfshjAZdAjWpHdpXi">
+        <div class="section-title" data-page-node-id="sEhmwDXOINrONJMAXmqWgF">会话设置</div>
+        <div class="form-row" data-page-node-id="xEr7tI6lerv5Haya8unQlF">
+          <select id="chatType" style="width:110px" onchange="render()" data-page-node-id="JcJeDIU3xnwTrB1sPDDbxv">
+            <option value="group" data-page-node-id="Sx3q0KZo6tcLxkEngVVDwn">群聊</option>
+            <option value="single" data-page-node-id="EJqDCh1sx8GSE2vFNUu4ak">单聊</option>
+          </select>
+          <input type="text" id="chatTitle" placeholder="会话标题（群名 / 对方名）" value="产品需求讨论群" oninput="render()" data-page-node-id="1E9WwxwL1ZO0fOYcOB2s8y">
+        </div>
+        <div class="form-row" data-page-node-id="nOcoMW3MFGAuhEdOWL4ppm">
+          <span id="myAvatarPreview" style="line-height:0;cursor:pointer" title="点击上传头像" onclick="pickAvatar('self')"></span>
+          <input type="text" id="myName" placeholder="我的昵称" value="我" oninput="render()" data-page-node-id="bfQ6YTNLaybi99MDuDS3ts">
+          <button class="btn btn-sm" onclick="pickAvatar('self')">上传头像</button>
+        </div>
+      </div>
+
+      <!-- 成员管理 -->
+      <div class="section" data-page-node-id="FW5srDb4FFIUxXpnaoWbAy">
+        <div class="section-title" data-page-node-id="9HD29C81dglztNtgJ85wsH">群成员（左侧发言人）</div>
+        <div class="member-list" id="memberList" data-page-node-id="ULoBOa7QlBC9B95NshuVdX"></div>
+        <div style="margin-top:8px" data-page-node-id="SQiJMWWeUhwL2Nufc52Qfd">
+          <button class="btn btn-sm" onclick="addMember()" data-page-node-id="DicGYhCDEt4rRyG4VYRHrm">+ 添加成员</button>
+        </div>
+      </div>
+
+      <!-- 消息编辑 -->
+      <div class="section" data-page-node-id="uuBOQTxYVDotxevGCOCf9s">
+        <div class="section-title" data-page-node-id="sULdwSHzQ0AIwKBgTRcGG2">消息内容</div>
+        <div style="margin-bottom:10px; display:flex; flex-direction:column; gap:6px;" data-page-node-id="1tUda1fkBRLaFyaTM0yVNo">
+          <div class="form-row" data-page-node-id="WTyROMqkEdkhAybR7y5nXG">
+            <select id="newSender" style="flex:1" data-page-node-id="2KLYGKa29S5Nrlm6Bi8lsV"></select>
+          </div>
+          <textarea id="newContent" placeholder="输入消息内容，支持多行"></textarea>
+          <button class="btn btn-primary" onclick="addMessage()" data-page-node-id="ef3uEc62RN7j702julRkT4">添加消息</button>
+        </div>
+        <div class="msg-list" id="msgList" data-page-node-id="vaREJnttIGSZ0ehPF3FCIu"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧预览 -->
+  <div class="preview-wrap" data-page-node-id="fuWONAr71djpdyJkUBqpYK">
+    <div class="preview-toolbar" data-page-node-id="H08I7ymUgJZkQFG205Ilmx">
+      <button class="btn" onclick="addTimeDivider()" data-page-node-id="sjgJ1NOvfNDJtg0FOZHhLy">+ 插入时间分割</button>
+      <button class="btn" onclick="addSystemMsg()" data-page-node-id="WwT8wyDG8Q1texx9Ug80J4">+ 插入系统消息</button>
+      <button class="btn btn-primary" onclick="exportPNG()" data-page-node-id="iWJArNNYm8yLfG6K72FgJL">导出长图 PNG</button>
+    </div>
+    <div class="phone" data-page-node-id="KvRk0OonrjfwzOvLxOlsz4">
+      <div class="phone-screen" id="phoneScreen" data-page-node-id="gnbJrnJg3ORQ93EAAvwiIk">
+        <div class="status-bar" data-page-node-id="O5S7RmOO6OZHQXadxCibrB">
+          <span id="clock" data-page-node-id="Y4sCdMfmL88ZyMaJDxslyW">14:57</span>
+          <span data-page-node-id="a7u4CFtLG1jkldwrErlDvS">5G &nbsp;&#9679;&#9679;&#9679;&nbsp; &#128267;100%</span>
+        </div>
+        <div class="nav-bar" data-page-node-id="5oaFp3yDeqnC3uEij2EpIa">
+          <span class="nav-back" data-page-node-id="PX3N9gS9LCAfiHmGVXz5DI">&#8249;</span>
+          <span class="nav-title" id="navTitle" data-page-node-id="uyM9rxz2IHUqW65aFSpXiz">产品需求讨论群</span>
+          <span class="nav-more" data-page-node-id="JLav2oyNmFEgM93KV4TG72">&#8943;</span>
+        </div>
+        <div class="chat-area" id="chatArea" data-page-node-id="eq2P2NenQTFmdqJt2fna2j"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 离屏导出节点 -->
+<div class="export-area" data-page-node-id="rlSTJa87lut5AHR9sRCQMl"><div class="phone-screen" id="exportNode" data-page-node-id="NzmLCJBIe8lHVL5TAHqYZy"></div></div>
+<div class="toast" id="toast" data-page-node-id="yR2qKRdiZyHjAhtb0Ik5Ni"></div>
+<input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="onAvatarFile(this)">
+
+<script>
+  // 深浅配对：dark 用于文字/昵称，light 用于文字头像底色（钉钉浅色头像风格）
+  const AVATAR_COLORS = [
+    { dark: '#1677ff', light: '#e8f3ff' },
+    { dark: '#00b578', light: '#e6f7ef' },
+    { dark: '#ff8f1f', light: '#fff1e3' },
+    { dark: '#8a68d9', light: '#f0ecfb' },
+    { dark: '#f54a45', light: '#fdecec' },
+    { dark: '#14c0ff', light: '#e5f7ff' },
+    { dark: '#fa6c9f', light: '#feeaf2' },
+    { dark: '#36cfc9', light: '#e5faf9' },
+  ];
+  let memberSeq = 0;
+
+  let state = {
+    myAvatar: '',
+    members: [
+      { id: 1, name: '老板', color: '#1677ff', avatar: '' },
+      { id: 2, name: '小雨', color: '#00b578', avatar: '' },
+    ],
+    messages: [
+      { type: 'time', text: '昨天 14:30' },
+      { type: 'chat', senderId: 1, text: '这周 原型可以弄完吗' },
+      { type: 'chat', self: true, text: '可以，周三前出四个核心页面，周四联调过一遍再给你' },
+      { type: 'chat', senderId: 1, text: '行，那单词模块的交互也一起补上' },
+      { type: 'chat', self: true, text: '没问题' },
+    ],
+  };
+
+  function getMember(id) { return state.members.find(m => m.id === id); }
+  function senderOptions() {
+    let html = state.members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    html += `<option value="__self">${escapeHtml(document.getElementById('myName').value) || '我'}（我）</option>`;
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, '&#10;'); }
+
+  /* ===== 头像渲染：有自定义图片用图片，否则浅底深字文字头像 ===== */
+  function colorPair(color) {
+    return AVATAR_COLORS.find(c => c.dark === color) || AVATAR_COLORS[0];
+  }
+  function avatarHTML(opts, size) {
+    const s = size || 36;
+    if (opts.avatar) {
+      return `<div class="avatar" style="width:${s}px;height:${s}px"><img src="${opts.avatar}" alt=""></div>`;
+    }
+    const c = colorPair(opts.color);
+    const text = escapeHtml((opts.name || '?').slice(0, 2));
+    const fontSize = s <= 20 ? 10 : 12;
+    return `<div class="avatar" style="width:${s}px;height:${s}px;background:${c.light};color:${c.dark};font-size:${fontSize}px">${text}</div>`;
+  }
+
+  /* ===== 渲染：成员编辑 ===== */
+  function renderMembers() {
+    const box = document.getElementById('memberList');
+    box.innerHTML = state.members.map(m => `
+      <div class="member-item">
+        <span title="点击换配色" style="cursor:pointer;line-height:0" onclick="cycleColor(${m.id})">${avatarHTML(m, 22)}</span>
+        <input type="text" value="${escapeAttr(m.name)}" oninput="renameMember(${m.id}, this.value)">
+        <button class="icon-btn" title="${m.avatar ? '更换头像' : '上传头像'}" onclick="pickAvatar(${m.id})">&#128247;</button>
+        ${m.avatar ? `<button class="icon-btn" title="清除头像，恢复文字头像" onclick="clearAvatar(${m.id})">&#8634;</button>` : ''}
+        <button class="icon-btn" title="删除成员" onclick="removeMember(${m.id})">&#10005;</button>
+      </div>
+    `).join('') || '<div class="empty-tip">暂无成员，点击下方按钮添加</div>';
+  }
+
+  /* ===== 渲染：消息编辑列表 ===== */
+  function renderMsgList() {
+    const box = document.getElementById('msgList');
+    if (!state.messages.length) {
+      box.innerHTML = '<div class="empty-tip">还没有消息，在上方添加</div>';
+      return;
+    }
+    box.innerHTML = state.messages.map((msg, i) => {
+      let senderSel = '';
+      if (msg.type === 'chat') {
+        senderSel = `<select onchange="changeSender(${i}, this.value)">${senderOptions().replace(
+          `value="${msg.self ? '__self' : msg.senderId}"`,
+          `value="${msg.self ? '__self' : msg.senderId}" selected`
+        )}</select>`;
+      } else {
+        senderSel = `<select disabled><option>${msg.type === 'time' ? '时间分割' : '系统消息'}</option></select>`;
+      }
+      const content = msg.type === 'chat'
+        ? `<textarea oninput="changeContent(${i}, this.value)" placeholder="消息内容">${escapeHtml(msg.text)}</textarea>`
+        : `<input type="text" style="width:100%" value="${escapeAttr(msg.text)}" oninput="changeContent(${i}, this.value)" placeholder="${msg.type === 'time' ? '如：今天 09:30' : '如：xxx 加入群聊'}">`;
+      return `
+      <div class="msg-item">
+        <div class="msg-item-top">
+          ${senderSel}
+          <div class="msg-actions">
+            <button title="上移" onclick="moveMsg(${i},-1)">&#8593;</button>
+            <button title="下移" onclick="moveMsg(${i},1)">&#8595;</button>
+            <button class="del" title="删除" onclick="removeMsg(${i})">&#10005;</button>
+          </div>
+        </div>
+        ${content}
+      </div>`;
+    }).join('');
+  }
+
+  /* ===== 渲染：聊天预览 ===== */
+  function renderChat(targetId) {
+    const isGroup = document.getElementById('chatType').value === 'group';
+    const myName = document.getElementById('myName').value.trim() || '我';
+    const area = document.getElementById(targetId);
+    let html = '';
+
+    state.messages.forEach(msg => {
+      if (msg.type === 'time') {
+        html += `<div class="time-msg"><span>${escapeHtml(msg.text)}</span></div>`;
+      } else if (msg.type === 'sys') {
+        html += `<div class="sys-msg"><span>${escapeHtml(msg.text)}</span></div>`;
+      } else {
+        if (msg.self) {
+          html += `
+          <div class="msg-row self ${isGroup ? '' : 'no-name'}">
+            ${avatarHTML({ name: myName, color: '#1677ff', avatar: state.myAvatar })}
+            <div class="msg-body">
+              ${isGroup ? `<div class="sender-name">${escapeHtml(myName)}</div>` : ''}
+              <div class="bubble">${escapeHtml(msg.text)}</div>
+            </div>
+          </div>`;
+        } else {
+          const m = getMember(msg.senderId) || { name: '?', color: '#1677ff', avatar: '' };
+          html += `
+          <div class="msg-row ${isGroup ? '' : 'no-name'}">
+            ${avatarHTML(m)}
+            <div class="msg-body">
+              ${isGroup ? `<div class="sender-name" style="color:${colorPair(m.color).dark}">${escapeHtml(m.name)}</div>` : ''}
+              <div class="bubble">${escapeHtml(msg.text)}</div>
+            </div>
+          </div>`;
+        }
+      }
+    });
+    area.innerHTML = html;
+  }
+
+  function render() {
+    renderMembers();
+    renderMsgList();
+    renderChat('chatArea');
+    document.getElementById('navTitle').textContent = document.getElementById('chatTitle').value || '聊天';
+    // 刷新"我的头像"预览
+    document.getElementById('myAvatarPreview').innerHTML =
+      avatarHTML({ name: document.getElementById('myName').value.trim() || '我', color: '#1677ff', avatar: state.myAvatar }, 28);
+    // 刷新新消息下拉框（保留当前选择）
+    const sel = document.getElementById('newSender');
+    const prev = sel.value || '__self';
+    sel.innerHTML = senderOptions();
+    sel.value = prev;
+  }
+
+  /* ===== 头像上传 ===== */
+  let uploadingTarget = null; // 'self' 或成员 id
+  function pickAvatar(target) {
+    uploadingTarget = target;
+    document.getElementById('avatarFileInput').click();
+  }
+  function onAvatarFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { toast('图片请小于 3MB'); input.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      if (uploadingTarget === 'self') {
+        state.myAvatar = e.target.result;
+      } else {
+        const m = getMember(uploadingTarget);
+        if (m) m.avatar = e.target.result;
+      }
+      uploadingTarget = null;
+      input.value = '';
+      render();
+      toast('头像已更新');
+    };
+    reader.readAsDataURL(file);
+  }
+  function clearAvatar(target) {
+    if (target === 'self') { state.myAvatar = ''; }
+    else { const m = getMember(target); if (m) m.avatar = ''; }
+    render();
+  }
+
+  /* ===== 成员操作 ===== */
+  function addMember() {
+    memberSeq++;
+    state.members.push({
+      id: Date.now() + memberSeq,
+      name: '成员' + (state.members.length + 1),
+      color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)].dark,
+      avatar: '',
+    });
+    render();
+  }
+  function removeMember(id) {
+    state.members = state.members.filter(m => m.id !== id);
+    render();
+  }
+  function renameMember(id, name) {
+    const m = getMember(id); if (m) m.name = name;
+    // 只刷新依赖名字的区域；不能重建成员列表，否则输入框丢失焦点无法打字
+    renderMsgList();
+    renderChat('chatArea');
+    const sel = document.getElementById('newSender');
+    const prev = sel.value || '__self';
+    sel.innerHTML = senderOptions();
+    sel.value = prev;
+  }
+  function cycleColor(id) {
+    const m = getMember(id); if (!m) return;
+    const idx = AVATAR_COLORS.findIndex(c => c.dark === m.color);
+    m.color = AVATAR_COLORS[(idx + 1) % AVATAR_COLORS.length].dark;
+    render();
+  }
+
+  /* ===== 消息操作 ===== */
+  function addMessage() {
+    const sel = document.getElementById('newSender');
+    const content = document.getElementById('newContent').value.trim();
+    if (!content) { toast('请输入消息内容'); return; }
+    const msg = sel.value === '__self'
+      ? { type: 'chat', self: true, text: content }
+      : { type: 'chat', senderId: Number(sel.value), text: content };
+    state.messages.push(msg);
+    document.getElementById('newContent').value = '';
+    render();
+    scrollChatBottom();
+  }
+  function addTimeDivider() {
+    state.messages.push({ type: 'time', text: '今天 ' + nowHM() });
+    render(); scrollChatBottom();
+  }
+  function addSystemMsg() {
+    state.messages.push({ type: 'sys', text: 'xxx 加入群聊' });
+    render(); scrollChatBottom();
+  }
+  function changeSender(i, v) {
+    const msg = state.messages[i];
+    if (v === '__self') { msg.self = true; delete msg.senderId; }
+    else { msg.self = false; msg.senderId = Number(v); }
+    render();
+  }
+  function changeContent(i, v) { state.messages[i].text = v; renderChat('chatArea'); }
+  function moveMsg(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= state.messages.length) return;
+    [state.messages[i], state.messages[j]] = [state.messages[j], state.messages[i]];
+    render(); scrollChatBottom();
+  }
+  function removeMsg(i) { state.messages.splice(i, 1); render(); }
+
+  function resetAll() {
+    if (!confirm('确定清空所有成员和消息吗？')) return;
+    state.members = []; state.messages = []; state.myAvatar = '';
+    render();
+  }
+
+  /* ===== 导出长图 ===== */
+  async function exportPNG() {
+    if (typeof html2canvas === 'undefined') { toast('html2canvas 加载失败，请检查网络或直接截图'); return; }
+    renderChat('exportNode');
+    // 导出节点补齐状态栏与导航栏
+    const node = document.getElementById('exportNode');
+    if (!node.querySelector('.status-bar')) {
+      node.insertAdjacentHTML('afterbegin', document.getElementById('phoneScreen').querySelector('.status-bar').outerHTML + document.getElementById('phoneScreen').querySelector('.nav-bar').outerHTML);
+    }
+    try {
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#f5f6f7' });
+      const a = document.createElement('a');
+      a.download = 'dingtalk-chat-' + Date.now() + '.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+      toast('长图已导出');
+    } catch (e) {
+      toast('导出失败：' + e.message);
+    }
+  }
+
+  /* ===== 工具 ===== */
+  function nowHM() {
+    const d = new Date();
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function scrollChatBottom() {
+    const area = document.getElementById('chatArea');
+    area.scrollTop = area.scrollHeight;
+  }
+  let toastTimer;
+  function toast(text) {
+    const t = document.getElementById('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+  document.getElementById('clock').textContent = nowHM();
+
+  render();
+  scrollChatBottom();
+</script>
+</body>
+</html>
