@@ -106,13 +106,6 @@
     font-size: 13px;
   }
   .member-item input { flex: 1; border: none; padding: 2px 4px; }
-  .color-dot {
-    width: 20px; height: 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    flex-shrink: 0;
-    border: 2px solid transparent;
-  }
   .member-item .icon-btn { border: none; background: none; cursor: pointer; color: var(--text-sub); font-size: 14px; padding: 2px 5px; }
   .member-item .icon-btn:hover { color: #f54a45; }
 
@@ -221,7 +214,7 @@
   .msg-row.self .msg-body { align-items: flex-end; }
   .sender-name {
     font-size: 11px;
-    color: #7b8290;
+    color: var(--dd-blue);
     margin-bottom: 3px;
     padding-left: 2px;
   }
@@ -359,24 +352,16 @@
 <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="onAvatarFile(this)">
 
 <script>
-  // 深浅配对：dark 用于文字/昵称，light 用于文字头像底色（钉钉浅色头像风格）
-  const AVATAR_COLORS = [
-    { dark: '#1677ff', light: '#e8f3ff' },
-    { dark: '#00b578', light: '#e6f7ef' },
-    { dark: '#ff8f1f', light: '#fff1e3' },
-    { dark: '#8a68d9', light: '#f0ecfb' },
-    { dark: '#f54a45', light: '#fdecec' },
-    { dark: '#14c0ff', light: '#e5f7ff' },
-    { dark: '#fa6c9f', light: '#feeaf2' },
-    { dark: '#36cfc9', light: '#e5faf9' },
-  ];
+  // 头像统一使用钉钉蓝：浅蓝底 + 蓝色文字
+  const DD_BLUE = '#1677ff';
+  const DD_BLUE_LIGHT = '#e8f3ff';
   let memberSeq = 0;
 
   let state = {
     myAvatar: '',
     members: [
-      { id: 1, name: '老板', color: '#1677ff', avatar: '' },
-      { id: 2, name: '小雨', color: '#00b578', avatar: '' },
+      { id: 1, name: '老板', avatar: '' },
+      { id: 2, name: '小雨', avatar: '' },
     ],
     messages: [
       { type: 'time', text: '昨天 14:30' },
@@ -399,19 +384,15 @@
   }
   function escapeAttr(s) { return escapeHtml(s).replace(/\n/g, '&#10;'); }
 
-  /* ===== 头像渲染：有自定义图片用图片，否则浅底深字文字头像 ===== */
-  function colorPair(color) {
-    return AVATAR_COLORS.find(c => c.dark === color) || AVATAR_COLORS[0];
-  }
+  /* ===== 头像渲染：有自定义图片用图片，否则浅蓝底蓝字文字头像 ===== */
   function avatarHTML(opts, size) {
     const s = size || 36;
     if (opts.avatar) {
       return `<div class="avatar" style="width:${s}px;height:${s}px"><img src="${opts.avatar}" alt=""></div>`;
     }
-    const c = colorPair(opts.color);
     const text = escapeHtml((opts.name || '?').slice(0, 2));
     const fontSize = s <= 20 ? 10 : 12;
-    return `<div class="avatar" style="width:${s}px;height:${s}px;background:${c.light};color:${c.dark};font-size:${fontSize}px">${text}</div>`;
+    return `<div class="avatar" style="width:${s}px;height:${s}px;background:${DD_BLUE_LIGHT};color:${DD_BLUE};font-size:${fontSize}px">${text}</div>`;
   }
 
   /* ===== 渲染：成员编辑 ===== */
@@ -419,7 +400,7 @@
     const box = document.getElementById('memberList');
     box.innerHTML = state.members.map(m => `
       <div class="member-item">
-        <span title="点击换配色" style="cursor:pointer;line-height:0" onclick="cycleColor(${m.id})">${avatarHTML(m, 22)}</span>
+        <span style="line-height:0">${avatarHTML(m, 22)}</span>
         <input type="text" value="${escapeAttr(m.name)}" oninput="renameMember(${m.id}, this.value)">
         <button class="icon-btn" title="${m.avatar ? '更换头像' : '上传头像'}" onclick="pickAvatar(${m.id})">&#128247;</button>
         ${m.avatar ? `<button class="icon-btn" title="清除头像，恢复文字头像" onclick="clearAvatar(${m.id})">&#8634;</button>` : ''}
@@ -479,19 +460,19 @@
         if (msg.self) {
           html += `
           <div class="msg-row self ${isGroup ? '' : 'no-name'}">
-            ${avatarHTML({ name: myName, color: '#1677ff', avatar: state.myAvatar })}
+            ${avatarHTML({ name: myName, avatar: state.myAvatar })}
             <div class="msg-body">
               ${isGroup ? `<div class="sender-name">${escapeHtml(myName)}</div>` : ''}
               <div class="bubble">${escapeHtml(msg.text)}</div>
             </div>
           </div>`;
         } else {
-          const m = getMember(msg.senderId) || { name: '?', color: '#1677ff', avatar: '' };
+          const m = getMember(msg.senderId) || { name: '?', avatar: '' };
           html += `
           <div class="msg-row ${isGroup ? '' : 'no-name'}">
             ${avatarHTML(m)}
             <div class="msg-body">
-              ${isGroup ? `<div class="sender-name" style="color:${colorPair(m.color).dark}">${escapeHtml(m.name)}</div>` : ''}
+              ${isGroup ? `<div class="sender-name">${escapeHtml(m.name)}</div>` : ''}
               <div class="bubble">${escapeHtml(msg.text)}</div>
             </div>
           </div>`;
@@ -508,7 +489,7 @@
     document.getElementById('navTitle').textContent = document.getElementById('chatTitle').value || '聊天';
     // 刷新"我的头像"预览
     document.getElementById('myAvatarPreview').innerHTML =
-      avatarHTML({ name: document.getElementById('myName').value.trim() || '我', color: '#1677ff', avatar: state.myAvatar }, 28);
+      avatarHTML({ name: document.getElementById('myName').value.trim() || '我', avatar: state.myAvatar }, 28);
     // 刷新新消息下拉框（保留当前选择）
     const sel = document.getElementById('newSender');
     const prev = sel.value || '__self';
@@ -553,7 +534,6 @@
     state.members.push({
       id: Date.now() + memberSeq,
       name: '成员' + (state.members.length + 1),
-      color: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)].dark,
       avatar: '',
     });
     render();
@@ -572,15 +552,7 @@
     sel.innerHTML = senderOptions();
     sel.value = prev;
   }
-  function cycleColor(id) {
-    const m = getMember(id); if (!m) return;
-    const idx = AVATAR_COLORS.findIndex(c => c.dark === m.color);
-    m.color = AVATAR_COLORS[(idx + 1) % AVATAR_COLORS.length].dark;
-    render();
-  }
-
-  /* ===== 消息操作 ===== */
-  function addMessage() {
+  /* ===== 消息操作 ===== */  function addMessage() {
     const sel = document.getElementById('newSender');
     const content = document.getElementById('newContent').value.trim();
     if (!content) { toast('请输入消息内容'); return; }
